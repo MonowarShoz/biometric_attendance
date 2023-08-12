@@ -12,6 +12,7 @@ import 'package:flutter_face_api/face_api.dart' as regula;
 import 'package:hive/hive.dart';
 import '../Model/face_features_model.dart';
 
+ List<StudentModel> attstudentList = [];
 class FaceAttendanceCheck extends StatefulWidget {
   const FaceAttendanceCheck({super.key});
 
@@ -23,8 +24,10 @@ class _FaceAttendanceCheckState extends State<FaceAttendanceCheck>
     with WidgetsBindingObserver {
   Box<StudentModel> studentBox = Hive.box<StudentModel>('studentbox');
   List<dynamic> newstList = [];
+ // List<StudentModel> attstudentList = [];
   String _similarity = "";
   int trialNumber = 1;
+   bool faceMatched = false;
   StudentModel? studentModel;
   CameraController? _cameraController;
   final FaceDetector _faceDetector = FaceDetector(
@@ -37,6 +40,12 @@ class _FaceAttendanceCheckState extends State<FaceAttendanceCheck>
   var image1 = regula.MatchFacesImage();
   var image2 = regula.MatchFacesImage();
   bool isMatching = false;
+
+  String failedMessage = '';
+  String status = '';
+
+  
+
 
   @override
   void initState() {
@@ -52,6 +61,7 @@ class _FaceAttendanceCheckState extends State<FaceAttendanceCheck>
     }
 
     if (state == AppLifecycleState.inactive) {
+      _faceDetector.close();
       _stopCamera();
     } else if (state == AppLifecycleState.resumed &&
         _cameraController != null &&
@@ -102,6 +112,7 @@ class _FaceAttendanceCheckState extends State<FaceAttendanceCheck>
       _cameraSelected(camera);
     }
   }
+
   bool isLoading = false;
 
   @override
@@ -151,25 +162,111 @@ class _FaceAttendanceCheckState extends State<FaceAttendanceCheck>
                         child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ListTile(
-                          leading: CircleAvatar(
-                              radius: 30,
-                              backgroundImage: studentModel == null
-                                  ? null
-                                  : MemoryImage(base64Decode(
-                                      studentModel!.img ?? '',
-                                    ))),
-                          title:     Text('Name : ${studentModel?.name ?? ''}'),
-                        ),
-
-
+                        // SizedBox(
+                        //   height: 40,
+                        // ),
+                        // failedMessage.isNotEmpty
+                        //     ? Text(failedMessage)
+                        //     :
+                        studentModel == null
+                            ? SizedBox.shrink()
+                            : Container(
+                                margin: const EdgeInsets.all(9),
+                                width: double.infinity,
+                                height: 90,
+                                decoration: BoxDecoration(
+                                    color: Color.fromARGB(255, 233, 242, 233),
+                                    borderRadius: BorderRadius.circular(10)),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Padding(
+                                          padding:
+                                              const EdgeInsets.only(left: 8.0),
+                                          child: CircleAvatar(
+                                            radius: 30,
+                                            backgroundImage:
+                                                studentModel != null
+                                                    ? MemoryImage(
+                                                        base64Decode(
+                                                          studentModel!.img!,
+                                                        ),
+                                                      )
+                                                    : null,
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 9),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                ' ${studentModel?.name ?? 'Name'}',
+                                              ),
+                                              Text(
+                                                  ' ${studentModel?.rollId ?? 'Name'}'),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8.0),
+                                      child: Icon(
+                                        Icons.check_circle,
+                                        size: 30,
+                                        color: Colors.green,
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                        Text('Status : $failedMessage'),
+                        // failedMessage.isNotEmpty
+                        //     ? Text(failedMessage)
+                        //     : ListTile(
+                        //         shape: RoundedRectangleBorder(
+                        //             borderRadius: BorderRadius.circular(10)),
+                        //         tileColor: Colors.black,
+                        //         leading: CircleAvatar(
+                        //           radius: 30,
+                        //           backgroundImage: studentModel != null
+                        //               ? MemoryImage(
+                        //                   base64Decode(
+                        //                     studentModel!.img!,
+                        //                   ),
+                        //                 )
+                        //               : null,
+                        //         ),
+                        //         trailing: Icon(
+                        //           Icons.check,
+                        //           color: Colors.green,
+                        //         ),
+                        //         title:
+                        //             Text('Name : ${studentModel?.name ?? ''}'),
+                        //       )
+                        // : SizedBox.shrink(),
                       ],
                     )),
-                  isLoading ? CircularProgressIndicator() :  ElevatedButton(
-                        onPressed: () {
-                          _setImage();
-                        },
-                        child: Text('Check Attendance')),
+                    isLoading
+                        ? CircularProgressIndicator()
+                        : ElevatedButton(
+                            onPressed: () {
+                              _setImage();
+                            },
+                            child: Text('Give Attendance'),
+                          ),
                   ],
                 ),
               ),
@@ -207,26 +304,51 @@ class _FaceAttendanceCheckState extends State<FaceAttendanceCheck>
 
   Future _setImage() async {
     if (_cameraController == null) return;
-    final navigator = Navigator.of(context);
+
     setState(() {
+      newstList.clear();
+      newstList = [];
+      studentModel = null;
+      failedMessage = '';
+      status = 'Clear';
       isLoading = true;
     });
+    // setState(() => isMatching = true);
     final pictureFile = await _cameraController!.takePicture();
 
     final imgfile = File(pictureFile.path);
+    //setState(() => isMatching = true);
     InputImage inputImage = InputImage.fromFile(imgfile);
+    //  setState(() => isMatching = true);
 
     _faceFeatures = await extractFaceFeatures(inputImage, _faceDetector);
-    Uint8List imageBytes = imgfile.readAsBytesSync();
+    if (_faceFeatures == null) {
+      setState(() {
+        failedMessage = 'No Face Found';
+        isLoading = false;
+      });
+    } else {
+      Uint8List imageBytes = imgfile.readAsBytesSync();
 
-    final imgStr = base64Encode(imageBytes);
-    image2.bitmap = imgStr;
-    image2.imageType = regula.ImageType.LIVE;
+      final imgStr = base64Encode(imageBytes);
+      image2.bitmap = imgStr;
+      image2.imageType = regula.ImageType.LIVE;
 
-    _fetchUsersAndMatchFace();
-    setState(() {
-      isLoading = false;
-    });
+      // setState(() => isMatching = true);
+      _fetchUsersAndMatchFace();
+    }
+    //  setState(() => isMatching = false);
+    // Uint8List imageBytes = imgfile.readAsBytesSync();
+
+    // final imgStr = base64Encode(imageBytes);
+    // image2.bitmap = imgStr;
+    // image2.imageType = regula.ImageType.LIVE;
+
+    // // setState(() => isMatching = true);
+    // _fetchUsersAndMatchFace();
+    // setState(() {
+    //   isLoading = false;
+    // });
 
     // setState(() {
     //   _canAuthenticate = true;
@@ -274,23 +396,23 @@ class _FaceAttendanceCheckState extends State<FaceAttendanceCheck>
     return sqr;
   }
 
-  _fetchUsersAndMatchFace() {
-    setState(() => isMatching = false);
+  _fetchUsersAndMatchFace() async {
+    //setState(() => isMatching = false);
     final studentList = studentBox.values.toList();
-    // CustomSnackBar.errorSnackBar("Something went wrong. Please try again.");
-    // Map<String,dynamic> b = userBox!.get(
-    //   'user',
-    // );
-    //if (b['face'] != null) {
+
     if (studentList.isNotEmpty) {
+      newstList.clear();
       for (var student in studentList) {
-        FaceFeatures _faceFeaturesFromDB = FaceFeatures();
+        FaceFeatures faceFeaturesFromDB = FaceFeatures();
         Map<String, dynamic> face = jsonDecode(student.faceData!);
-        _faceFeaturesFromDB = FaceFeatures.fromJson(face);
-        double similarity = compareFaces(_faceFeatures!, _faceFeaturesFromDB);
+        faceFeaturesFromDB = FaceFeatures.fromJson(face);
+        double similarity = compareFaces(_faceFeatures!, faceFeaturesFromDB);
+        log('fetchUserAndMatchFace $similarity');
         if (similarity >= 0.8 && similarity <= 1.5) {
           //log('succes');
           newstList.add([student, similarity]);
+        } else {
+          newstList.clear();
         }
       }
       log(newstList.length.toString(), name: "Filtered Users");
@@ -301,90 +423,126 @@ class _FaceAttendanceCheckState extends State<FaceAttendanceCheck>
             .compareTo(((b.last as double) - 1).abs()));
       });
 
-      _matchFaces();
+    await  _matchFaces();
     } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('No User is Registered')));
+      setState(() {
+        failedMessage = 'User list is Empty';
+      });
+      // ScaffoldMessenger.of(context)
+      //     .showSnackBar(SnackBar(content: Text('No User is Registered')));
     }
   }
 
   _matchFaces() async {
-    bool faceMatched = false;
-    // Map b = userBox!.get(
-    //   'user',
-    // );
-    for (List student in newstList) {
-      image1.bitmap = (student.first as StudentModel).img;
-      image1.imageType = regula.ImageType.PRINTED;
-
-      var request = regula.MatchFacesRequest();
-      request.images = [image1, image2];
-      dynamic value = await regula.FaceSDK.matchFaces(jsonEncode(request));
-
-      var response = regula.MatchFacesResponse.fromJson(json.decode(value));
-      dynamic str = await regula.FaceSDK.matchFacesSimilarityThresholdSplit(
-          jsonEncode(response!.results), 0.75);
-      var split =
-          regula.MatchFacesSimilarityThresholdSplit.fromJson(json.decode(str));
-
+    if (newstList.isEmpty) {
       setState(() {
-        _similarity = split!.matchedFaces.isNotEmpty
-            ? (split.matchedFaces[0]!.similarity! * 100).toStringAsFixed(2)
-            : "error";
-        log("similarity: $_similarity");
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Similarity $_similarity')));
-
-        if (_similarity != "error" && double.parse(_similarity) > 90.00) {
-          faceMatched = true;
-          studentModel = student.first;
-          // loggingUser = user.first;
-        } else {
-          faceMatched = false;
-        }
+        status = 'NoUser';
+        failedMessage = 'No Matched User';
+        isLoading = false;
       });
-    }
+    } else {
+     
+      for (List student in newstList) {
+        image1.bitmap = (student.first as StudentModel).img;
+        image1.imageType = regula.ImageType.PRINTED;
 
-    if (faceMatched) {
-      setState(() {
-        trialNumber = 1;
-        isMatching = false;
-      });
-      if (!mounted) {
-        return;
-      }
+        var request = regula.MatchFacesRequest();
+        request.images = [image1, image2];
+        dynamic value = await regula.FaceSDK.matchFaces(jsonEncode(request));
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Successfully matched')));
-
-      // if (mounted) {
-      //   Navigator.of(context).push(
-      //     MaterialPageRoute(
-      //       builder: (context) => UserDetailsView(user: loggingUser!),
-      //     ),
-      //   );
-      // }
-    }
-
-    if (!faceMatched) {
-      if (trialNumber == 4) {
-        setState(() => trialNumber = 1);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed matched')));
-      } else if (trialNumber == 3) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed matched')));
+        var response = regula.MatchFacesResponse.fromJson(json.decode(value));
+        dynamic str = await regula.FaceSDK.matchFacesSimilarityThresholdSplit(
+            jsonEncode(response!.results), 0.75);
+        var split = regula.MatchFacesSimilarityThresholdSplit.fromJson(
+            json.decode(str));
 
         setState(() {
-          isMatching = false;
-          trialNumber++;
+          _similarity = split!.matchedFaces.isNotEmpty
+              ? (split.matchedFaces[0]!.similarity! * 100).toStringAsFixed(2)
+              : "error";
+          log("similarity: $_similarity");
+          //  });
+
+          // ScaffoldMessenger.of(context)
+          //     .showSnackBar(SnackBar(content: Text('Similarity $_similarity')));
+
+          if (_similarity != "error" && double.parse(_similarity) > 90.00) {
+            faceMatched = true;
+            log('faceMatched 1 $faceMatched');
+            // log('Face  matching');
+            // setState(() {
+            //   failedMessage = 'Face Matched';
+            //   studentModel = student.first;
+            //   isLoading = false;
+            // });
+
+            // loggingUser = user.first;
+          } else {
+            faceMatched = false;
+      log('faceMatched 2 $faceMatched');
+            // setState(() {
+            //   isLoading = false;
+
+            //   failedMessage = 'Face not matching';
+            // });
+          }
         });
-      } else {
-        setState(() => trialNumber++);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed matched')));
+        if (faceMatched) {
+          setState(() {
+            isLoading = false;
+            studentModel = student.first;
+            if (attstudentList.contains(studentModel)) {
+              status = 'Attendance Already Exist';
+            }else {
+               attstudentList.add(studentModel!);
+            }
+           
+            failedMessage = 'Face Matched Succesfully';
+          });
+          
+        } else  {
+          setState(() {
+            isLoading = false;
+            status = 'face not matching';
+            failedMessage = 'face not matching,try again';
+          });
+          log('Face check status $status');
+        }
       }
     }
+
+    // if (faceMatched) {
+    //   setState(() {
+    //     trialNumber = 1;
+    //     isMatching = false;
+    //     isLoading = false;
+    //   });
+    //   if (!mounted) {
+    //     return;
+    //   }
+
+    //   // ScaffoldMessenger.of(context)
+    //   //     .showSnackBar(SnackBar(content: Text('Successfully matched')));
+
+    //   // if (mounted) {
+    //   //   Navigator.of(context).push(
+    //   //     MaterialPageRoute(
+    //   //       builder: (context) => UserDetailsView(user: loggingUser!),
+    //   //     ),
+    //   //   );
+    //   // }
+    // }
+
+    // if (!faceMatched) {
+    //   setState(() {
+    //     isLoading = false;
+    //     studentModel = null;
+    //     failedMessage = 'Face Not matching to this user';
+    //   });
+
+    //   // ScaffoldMessenger.of(context)
+    //   //     .showSnackBar(SnackBar(content: Text('Failed matched')));
+    // }
 
     //}
   }

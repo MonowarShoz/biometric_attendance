@@ -1,9 +1,13 @@
 import 'package:biometric_attendance/Model/face_features_model.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
-Future<FaceFeatures> extractFaceFeatures(
+Future<FaceFeatures?> extractFaceFeatures(
     InputImage inputImage, FaceDetector faceDetector) async {
   List<Face> faceList = await faceDetector.processImage(inputImage);
+  if (faceList.isEmpty) {
+    return null;
+    
+  }
   Face face = faceList.first;
 
   FaceFeatures faceFeatures = FaceFeatures(

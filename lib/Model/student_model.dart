@@ -9,6 +9,19 @@ class StudentModel {
   String? img;
   @HiveField(2)
   String? faceData;
+  @HiveField(3)
+  String? rollId;
+  @HiveField(4)
+  String? dpt;
+  @HiveField(5)
+  String? session;
 
-  StudentModel({this.name, this.img, this.faceData});
+  StudentModel({
+    this.name,
+    this.img,
+    this.faceData,
+    this.rollId,
+    this.dpt,
+    this.session,
+  });
 }
