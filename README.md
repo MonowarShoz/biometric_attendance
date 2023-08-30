@@ -1,10 +1,10 @@
 # biometric_attendance
 
-A new Flutter project.
+Biometric Attendance
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+1. Face Detection authenticaton using flutter Hive
 
 A few resources to get you started if this is your first Flutter project:
 
