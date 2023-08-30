@@ -1,10 +1,12 @@
 # biometric_attendance
 
-Biometric Attendance
+Biometric Attendance using face detection
 
 ## Getting Started
 
-1. Face Detection authenticaton using flutter Hive
+1. Store and Register user using Flutter hive
+2. register user can give attendance using face detection.
+3. Automatically fetch user data if user's face matches
 
 A few resources to get you started if this is your first Flutter project:
 
